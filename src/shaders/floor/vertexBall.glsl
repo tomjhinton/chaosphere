@@ -1,0 +1,28 @@
+
+uniform vec2 uMouse;
+uniform float uTime;
+varying float vTime;
+varying vec2 vUv;
+uniform vec2 uFrequency;
+uniform vec3 uPosition;
+uniform vec3 uRotation;
+
+
+
+void main()
+
+{
+
+  vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+
+  vec4 viewPosition = viewMatrix * modelPosition;
+
+  vec4 projectedPosition = projectionMatrix * viewPosition;
+
+  gl_Position = projectedPosition;
+
+
+  vUv = uv;
+  vTime = uTime;
+
+}
