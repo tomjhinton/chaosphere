@@ -1,7 +1,7 @@
 import './style.scss'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-
+import * as CANNON from 'cannon-es'
 
 import vertexShaderBall from './shaders/ball/vertexBall.glsl'
 import fragmentShaderBall from './shaders/ball/fragmentBall.glsl'
@@ -21,12 +21,37 @@ const sharedParameters ={
   }
 }
 
-
+let objectsToUpdate = []
 const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
 scene.background = new THREE.Color( 0xffffff )
+
+//Physics
+
+//World
+const world = new CANNON.World()
+world.broadphase = new CANNON.SAPBroadphase(world)
+world.allowSleep = true
+world.gravity.set(0, -9.82, 0)
+
+//Materials
+const defaultMaterial = new CANNON.Material('default')
+
+
+const defaultContactMaterial = new CANNON.ContactMaterial(
+  defaultMaterial,
+  defaultMaterial,
+  {
+    friction: 0.1,
+    restitution: 0.7
+  }
+)
+
+world.addContactMaterial(defaultContactMaterial)
+world.defaultContactMaterial = defaultContactMaterial
+
 
 
 /**
@@ -38,7 +63,7 @@ scene.background = new THREE.Color( 0xffffff )
 
 //Three Ball
 
-const ballGeometry = new THREE.SphereGeometry(1,1,32)
+const ballGeometry = new THREE.SphereGeometry(1,32,32)
 
 
 // Material
@@ -79,16 +104,43 @@ const ballMaterial = new THREE.ShaderMaterial({
   }
 })
 
+const createSphere = (radius, position) =>{
 
-const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial)
-scene.add(ballMesh)
+  //Three.js mesh
+  const mesh = new THREE.Mesh(ballGeometry, ballMaterial)
+  mesh.castShadow = true
+  mesh.position.copy(position)
+  mesh.scale.set(radius, radius, radius)
+  scene.add(mesh)
+
+  //Cannon.js Body
+  const shape = new CANNON.Sphere(radius)
+  const body = new CANNON.Body({
+    mass: 1,
+    positon: new CANNON.Vec3(0, 3, 0),
+    shape: shape,
+    material: defaultMaterial
+  })
+  body.position.copy(position)
+  //body.addEventListener('collide', console.log('hiya'))
+  world.addBody(body)
+
+  //Save in objects to update
+  objectsToUpdate.push({
+    mesh: mesh,
+    body: body
+  })
+}
+
+createSphere(0.5, {x: 0, y: 3, z: 0})
+
 //Cannon Ball
 
 
 
 
 //Three floor
-const floorGeometry = new THREE.BoxGeometry(5,5,0.5)
+const floorGeometry = new THREE.BoxGeometry(50,0.1,50)
 
 const floorMaterial = new THREE.ShaderMaterial({
   vertexShader: vertexShaderFloor,
@@ -132,7 +184,12 @@ const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial)
 scene.add(floorMesh)
 //Cannon Floor
 
+const floorShape = new CANNON.Box(new CANNON.Vec3(50,0.1,50))
+const floorBody = new CANNON.Body()
+floorBody.mass = 0
+floorBody.addShape(floorShape)
 
+world.addBody(floorBody)
 
 
 
@@ -191,12 +248,22 @@ renderer.globalClippingEnabled = true
  * Animate
  */
 
-
+let materialsArray = [ floorMaterial, ballMaterial]
 
 const clock = new THREE.Clock()
-
+let oldElapsedTime = 0
 const tick = () =>{
   const elapsedTime = clock.getElapsedTime()
+  const deltaTime = elapsedTime - oldElapsedTime
+  oldElapsedTime = elapsedTime
+  //Update Physics World
+
+  world.step(1/60, deltaTime, 3)
+
+  for(const object of objectsToUpdate){
+    object.mesh.position.copy(object.body.position)
+    object.mesh.quaternion.copy(object.body.quaternion)
+  }
   // console.log(camera)
   //Update Material
   sharedParameters.time = elapsedTime
