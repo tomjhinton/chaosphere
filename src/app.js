@@ -45,7 +45,7 @@ const defaultContactMaterial = new CANNON.ContactMaterial(
   defaultMaterial,
   {
     friction: 0.1,
-    restitution: 0.7
+    restitution: 1.0
   }
 )
 
@@ -122,7 +122,9 @@ const createSphere = (radius, position) =>{
     material: defaultMaterial
   })
   body.position.copy(position)
-  //body.addEventListener('collide', console.log('hiya'))
+  body.addEventListener('collide', ()=> {
+    floorMaterial.uniforms.uCount.value += 5
+  })
   world.addBody(body)
 
   //Save in objects to update
@@ -132,7 +134,7 @@ const createSphere = (radius, position) =>{
   })
 }
 
-createSphere(0.5, {x: 0, y: 3, z: 0})
+createSphere(0.5, {x: 0, y: 6, z: 0})
 
 //Cannon Ball
 
@@ -175,6 +177,9 @@ const floorMaterial = new THREE.ShaderMaterial({
       value: {
 
       }
+    },
+    uCount: {
+      value: 0
     }
   }
 })
@@ -184,7 +189,7 @@ const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial)
 scene.add(floorMesh)
 //Cannon Floor
 
-const floorShape = new CANNON.Box(new CANNON.Vec3(50,0.1,50))
+const floorShape = new CANNON.Box(new CANNON.Vec3(50,0.05,50))
 const floorBody = new CANNON.Body()
 floorBody.mass = 0
 floorBody.addShape(floorShape)
@@ -266,6 +271,9 @@ const tick = () =>{
   }
   // console.log(camera)
   //Update Material
+  materialsArray.map(material => {
+    material.uniforms.uTime.value = elapsedTime
+  })
   sharedParameters.time = elapsedTime
 
 
