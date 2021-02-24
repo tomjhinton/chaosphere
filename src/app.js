@@ -14,6 +14,10 @@ const sharedParameters ={
   mouse: {
     x: 0,
     y: 0
+  },
+  u_resolution: {
+    x: 0,
+    y: 0
   }
 }
 
@@ -33,6 +37,9 @@ scene.background = new THREE.Color( 0xffffff )
 
 
 //Three Ball
+
+const ballGeometry = new THREE.SphereGeometry(1,1,32)
+
 
 // Material
 const ballMaterial = new THREE.ShaderMaterial({
@@ -73,12 +80,15 @@ const ballMaterial = new THREE.ShaderMaterial({
 })
 
 
+const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial)
+scene.add(ballMesh)
 //Cannon Ball
 
 
 
 
 //Three floor
+const floorGeometry = new THREE.BoxGeometry(5,5,0.5)
 
 const floorMaterial = new THREE.ShaderMaterial({
   vertexShader: vertexShaderFloor,
@@ -117,5 +127,95 @@ const floorMaterial = new THREE.ShaderMaterial({
   }
 })
 
+const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial)
 
+scene.add(floorMesh)
 //Cannon Floor
+
+
+
+
+
+/**
+ * Sizes
+ */
+const sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight
+}
+
+window.addEventListener('resize', () =>{
+
+  //Update uniforms
+  if (sharedParameters.u_resolution !== undefined){
+    sharedParameters.u_resolution.x = window.innerWidth
+    sharedParameters.u_resolution.y = window.innerHeight
+  }
+  // Update sizes
+  sizes.width = window.innerWidth
+  sizes.height = window.innerHeight
+
+  // Update camera
+  camera.aspect = sizes.width / sizes.height
+  camera.updateProjectionMatrix()
+
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+})
+
+/**
+ * Camera
+ */
+// Base camera
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+camera.position.set(0.25, - 0.25, 1)
+scene.add(camera)
+
+// Controls
+const controls = new OrbitControls(camera, canvas)
+controls.enableDamping = true
+
+/**
+ * Renderer
+ */
+const renderer = new THREE.WebGLRenderer({
+  canvas: canvas
+})
+renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.localClippingEnabled = true
+renderer.globalClippingEnabled = true
+
+/**
+ * Animate
+ */
+
+
+
+const clock = new THREE.Clock()
+
+const tick = () =>{
+  const elapsedTime = clock.getElapsedTime()
+  // console.log(camera)
+  //Update Material
+  sharedParameters.time = elapsedTime
+
+
+
+  // mesh.rotation.z +=0.001
+  // Update controls
+  controls.update()
+  // mesh.position.copy(camera.position)
+
+
+  // Render
+  renderer.render(scene, camera)
+
+
+
+  // Call tick again on the next frame
+  window.requestAnimationFrame(tick)
+}
+
+tick()
